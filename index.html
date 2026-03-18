@@ -12,6 +12,7 @@
         :root {
             --neon-cyan: #00ffff;
             --danger-red: #ff4444;
+            --debug-purple: #a855f7;
         }
 
         * {
@@ -140,13 +141,28 @@
 
         /* Debug styling */
         .debug-active .cell.is-mine-debug:not(.revealed) {
-            border: 1px solid #a855f7 !important;
+            border: 1px solid var(--debug-purple) !important;
             background: rgba(168, 85, 247, 0.2);
         }
         .debug-active .cell.is-mine-debug:not(.revealed)::after {
             content: '•';
-            color: #a855f7;
+            color: var(--debug-purple);
             font-size: 10px;
+        }
+
+        #debug-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+            display: none;
+        }
+
+        .debug-borders-active #debug-canvas {
+            display: block;
         }
 
         .num-1 { color: #60a5fa; text-shadow: 0 0 5px rgba(0,0,0,0.8); }
@@ -154,7 +170,7 @@
         .num-3 { color: #f87171; text-shadow: 0 0 5px rgba(0,0,0,0.8); }
         .num-4 { color: #c084fc; text-shadow: 0 0 5px rgba(0,0,0,0.8); }
 
-        #status-overlay {
+        #status-overlay, #toast {
             position: fixed;
             top: 50%;
             left: 50%;
@@ -167,6 +183,14 @@
             pointer-events: auto;
             text-align: center;
             box-shadow: 0 0 50px rgba(0,0,0,1);
+        }
+
+        #toast {
+            top: 80%;
+            padding: 1rem;
+            font-size: 12px;
+            border-color: var(--debug-purple);
+            color: white;
         }
 
         .header-action-btn {
@@ -185,15 +209,16 @@
         }
 
         .header-action-btn.active {
-            background: #a855f7;
+            background: var(--debug-purple);
             color: white;
-            border-color: #a855f7;
+            border-color: var(--debug-purple);
         }
     </style>
 </head>
-<body>
+<body class="">
 
     <div id="map"></div>
+    <canvas id="debug-canvas"></canvas>
 
     <div class="game-overlay">
         <div class="ui-header">
@@ -206,7 +231,7 @@
                 </div>
             </div>
             <div class="flex items-center gap-4">
-                <div class="flex gap-3 mr-2 border-r border-cyan-900 pr-4">
+                <div class="flex gap-3 mr-2 border-r border-cyan-900 pr-4 text-white">
                     <div class="text-right">
                         <div class="text-[8px] opacity-60 uppercase">Miner</div>
                         <div id="mine-count" class="text-xs font-bold text-cyan-400">0</div>
@@ -218,13 +243,14 @@
                 </div>
                 <div class="flex gap-2">
                     <button onclick="toggleDebug()" id="debug-btn" class="header-action-btn">Debug Mines</button>
+                    <button onclick="toggleDebugBorders()" id="debug-borders-btn" class="header-action-btn">Debug Borders</button>
                     <button onclick="initGame()" class="header-action-btn">Reset</button>
                 </div>
             </div>
         </div>
 
         <div class="grid-wrapper">
-            <div id="game-grid" class="grid-container"></div>
+            <div id="game-grid" class="grid-container" onclick="handleMapClick(event)"></div>
         </div>
     </div>
 
@@ -232,6 +258,8 @@
         <h2 id="status-text" class="text-xl font-bold mb-4 text-cyan-400"></h2>
         <button onclick="initGame()" class="bg-cyan-400 text-black px-4 py-2 font-bold text-xs">RESTART SYSTEM</button>
     </div>
+
+    <div id="toast">Koordinater kopiert!</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
@@ -258,6 +286,7 @@
         let timerInterval;
         let seconds = 0;
         let isDebug = false;
+        let isDebugBorders = false;
 
         function isPointOnLand(x, y) {
             for (let poly of landPolygons) {
@@ -391,6 +420,7 @@
                 }));
 
                 timerInterval = setInterval(() => { seconds++; document.getElementById('timer').innerText = seconds; }, 1000);
+                if (isDebugBorders) drawDebugBorders();
             }, 60);
         }
 
@@ -453,7 +483,71 @@
             btn.classList.toggle('active', isDebug);
         }
 
-        window.onresize = initGame;
+        function toggleDebugBorders() {
+            isDebugBorders = !isDebugBorders;
+            document.body.classList.toggle('debug-borders-active', isDebugBorders);
+            const btn = document.getElementById('debug-borders-btn');
+            btn.classList.toggle('active', isDebugBorders);
+            if (isDebugBorders) {
+                drawDebugBorders();
+            }
+        }
+
+        function drawDebugBorders() {
+            const canvas = document.getElementById('debug-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = '#a855f7';
+            ctx.fillStyle = '#a855f7';
+            ctx.lineWidth = 2;
+
+            landPolygons.forEach(poly => {
+                ctx.beginPath();
+                poly.forEach((pt, idx) => {
+                    const pos = map.latLngToContainerPoint([pt[1], pt[0]]);
+                    if (idx === 0) ctx.moveTo(pos.x, pos.y);
+                    else ctx.lineTo(pos.x, pos.y);
+                    
+                    // Tegn punktet
+                    ctx.fillRect(pos.x - 3, pos.y - 3, 6, 6);
+                });
+                ctx.closePath();
+                ctx.stroke();
+            });
+        }
+
+        function handleMapClick(e) {
+            if (!isDebugBorders) return;
+            
+            const x = e.clientX;
+            const y = e.clientY;
+            const latlng = map.containerPointToLatLng([x, y]);
+            
+            // Format for array: [lng, lat]
+            const coordStr = `[${latlng.lng.toFixed(4)}, ${latlng.lat.toFixed(4)}]`;
+            
+            // Kopier til clipboard
+            const el = document.createElement('textarea');
+            el.value = coordStr;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+
+            // Vis toast
+            const toast = document.getElementById('toast');
+            toast.innerText = `Kopiert: ${coordStr}`;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 2000);
+        }
+
+        window.onresize = () => {
+            initGame();
+            if (isDebugBorders) drawDebugBorders();
+        };
         window.onload = initGame;
     </script>
 </body>
