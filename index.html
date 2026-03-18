@@ -14,15 +14,21 @@
             --danger-red: #ff4444;
         }
 
-        body {
+        * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
             background-color: #000;
             color: #e0e0e0;
             font-family: 'Orbitron', sans-serif;
             overflow: hidden;
             height: 100vh;
-            touch-action: manipulation;
+            width: 100vw;
+            touch-action: none;
         }
 
         #map {
@@ -32,7 +38,7 @@
             width: 100%;
             height: 100%;
             z-index: 1;
-            filter: brightness(0.6) contrast(1.1);
+            filter: brightness(0.4) contrast(1.3);
             pointer-events: none;
         }
 
@@ -50,30 +56,28 @@
 
         .ui-header {
             pointer-events: auto;
-            background: rgba(10, 20, 30, 0.9);
+            background: rgba(10, 20, 30, 0.95);
             backdrop-filter: blur(10px);
             border-bottom: 2px solid var(--neon-cyan);
-            padding: 0.5rem 1rem;
+            padding: 0.6rem 1rem;
             width: 100%;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 4px 20px rgba(0, 255, 255, 0.2);
             z-index: 20;
         }
 
         .difficulty-btn {
-            padding: 2px 6px;
-            font-size: 9px;
+            padding: 4px 8px;
+            font-size: 10px;
             border: 1px solid rgba(0, 255, 255, 0.3);
             cursor: pointer;
-            transition: all 0.2s;
+            color: var(--neon-cyan);
         }
 
         .difficulty-btn.active {
             background: var(--neon-cyan);
             color: black;
-            border-color: var(--neon-cyan);
         }
 
         .grid-wrapper {
@@ -81,8 +85,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 10px;
             overflow: hidden;
+            pointer-events: none;
         }
 
         .grid-container {
@@ -92,34 +96,36 @@
             background: rgba(0, 255, 255, 0.2); 
             border: 2px solid var(--neon-cyan);
             width: fit-content;
-            max-width: 95vw;
-            max-height: 75vh;
-            box-shadow: 0 0 30px rgba(0, 255, 255, 0.1);
+            height: fit-content;
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.15);
+            place-content: center;
         }
 
         .cell {
-            aspect-ratio: 1 / 1; 
-            min-width: 25px;
-            min-height: 25px;
-            background: rgba(10, 30, 50, 0.7); 
+            aspect-ratio: 1 / 1;
+            width: 28px;
+            height: 28px;
+            background: rgba(10, 30, 50, 0.85); 
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            font-size: clamp(10px, 3vw, 16px);
+            font-size: 14px;
             font-weight: bold;
-            transition: background 0.1s;
             user-select: none;
-            -webkit-user-select: none;
-            -webkit-touch-callout: none;
+            transition: background 0.1s;
         }
 
-        /* Øk størrelsen på mobil spesifikt */
         @media (max-width: 640px) {
             .cell {
-                min-width: 35px;
-                min-height: 35px;
+                width: 32px;
+                height: 32px;
             }
+        }
+
+        /* Long press visuell indikator */
+        .cell:active:not(.revealed) {
+            background: rgba(0, 255, 255, 0.3);
         }
 
         .cell.land {
@@ -127,33 +133,14 @@
             pointer-events: none;
         }
 
-        .debug-active .cell.land {
-            visibility: visible;
-            background: rgba(255, 0, 0, 0.2);
-        }
-
-        .cell:hover:not(.revealed) {
-            background: rgba(0, 255, 255, 0.4);
-        }
-
-        .cell.revealed {
-            background: rgba(255, 255, 255, 0.05); 
-        }
-
-        .cell.mine {
-            background: rgba(255, 0, 0, 0.9) !important;
-            color: white;
-        }
-
-        .cell.flagged {
-            color: #ffcc00;
-        }
+        .cell.revealed { background: rgba(255, 255, 255, 0.05); }
+        .cell.mine { background: rgba(255, 0, 0, 0.9) !important; color: white; }
+        .cell.flagged { color: #ffcc00; font-size: 18px; }
 
         .num-1 { color: #60a5fa; }
         .num-2 { color: #34d399; }
         .num-3 { color: #f87171; }
-        .num-4 { color: #a78bfa; }
-        .num-5 { color: #fbbf24; }
+        .num-4 { color: #c084fc; }
 
         #status-overlay {
             position: fixed;
@@ -161,27 +148,26 @@
             left: 50%;
             transform: translate(-50%, -50%);
             z-index: 100;
-            text-align: center;
             background: rgba(0, 10, 20, 0.95);
             padding: 2rem;
             border: 2px solid var(--neon-cyan);
             display: none;
             pointer-events: auto;
-            width: 85%;
-            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 0 50px rgba(0,0,0,1);
         }
 
         .debug-toggle {
             position: absolute;
-            bottom: 15px;
-            left: 15px;
+            bottom: 10px;
+            left: 10px;
             z-index: 50;
             pointer-events: auto;
             background: rgba(0, 0, 0, 0.7);
             border: 1px solid var(--neon-cyan);
             color: var(--neon-cyan);
-            padding: 4px 8px;
-            font-size: 10px;
+            padding: 4px;
+            font-size: 9px;
         }
     </style>
 </head>
@@ -191,27 +177,25 @@
 
     <div class="game-overlay">
         <div class="ui-header">
-            <div class="flex flex-col">
-                <h1 class="text-xs md:text-sm font-bold text-cyan-400">OPERASJON HORMUZ</h1>
+            <div>
+                <h1 class="text-[10px] font-bold text-cyan-400">OPERASJON HORMUZ</h1>
                 <div class="flex gap-1 mt-1">
-                    <button onclick="setDifficulty('easy')" id="btn-easy" class="difficulty-btn">LETT</button>
+                    <button onclick="setDifficulty('easy')" id="btn-easy" class="difficulty-btn">LOW</button>
                     <button onclick="setDifficulty('medium')" id="btn-medium" class="difficulty-btn active">MID</button>
-                    <button onclick="setDifficulty('expert')" id="btn-expert" class="difficulty-btn">EKSP</button>
+                    <button onclick="setDifficulty('expert')" id="btn-expert" class="difficulty-btn">MAX</button>
                 </div>
             </div>
-            
             <div class="flex gap-4">
-                <div class="text-center">
-                    <div class="text-[8px] opacity-60">MINER</div>
-                    <div id="mine-count" class="text-sm font-bold text-cyan-400">0</div>
+                <div class="text-right">
+                    <div class="text-[8px] opacity-60 uppercase">Miner</div>
+                    <div id="mine-count" class="text-xs font-bold text-cyan-400">0</div>
                 </div>
-                <div class="text-center">
-                    <div class="text-[8px] opacity-60">TID</div>
-                    <div id="timer" class="text-sm font-bold text-cyan-400">0</div>
+                <div class="text-right">
+                    <div class="text-[8px] opacity-60 uppercase">Tid</div>
+                    <div id="timer" class="text-xs font-bold text-cyan-400">0</div>
                 </div>
+                <button onclick="initGame()" class="border border-cyan-400 px-2 py-1 text-[9px] uppercase font-bold text-cyan-400">Reset</button>
             </div>
-            
-            <button onclick="initGame()" class="border border-cyan-400 px-3 py-1 text-[10px] hover:bg-cyan-400 hover:text-black transition uppercase font-bold">Reset</button>
         </div>
 
         <div class="grid-wrapper">
@@ -222,9 +206,8 @@
     </div>
 
     <div id="status-overlay">
-        <h2 id="status-text" class="text-2xl font-bold mb-2 text-cyan-400"></h2>
-        <p id="status-sub" class="mb-6 opacity-80 text-xs"></p>
-        <button onclick="initGame()" class="bg-cyan-400 text-black px-6 py-2 font-bold uppercase text-xs">Prøv Igjen</button>
+        <h2 id="status-text" class="text-xl font-bold mb-4 text-cyan-400"></h2>
+        <button onclick="initGame()" class="bg-cyan-400 text-black px-4 py-2 font-bold text-xs">RESTART SYSTEM</button>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -232,30 +215,11 @@
         const map = L.map('map', {
             center: [26.25, 55.85], 
             zoom: 8,
-            zoomControl: false,
-            dragging: false,
-            scrollWheelZoom: false,
-            doubleClickZoom: false,
-            touchZoom: false,
-            boxZoom: false,
-            tap: false
+            zoomControl: false, dragging: false, scrollWheelZoom: false,
+            doubleClickZoom: false, touchZoom: false, boxZoom: false
         });
 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
-
-        const difficulties = {
-            easy: { rows: 11, cols: 18, mineDensity: 0.12 },
-            medium: { rows: 17, cols: 28, mineDensity: 0.16 },
-            expert: { rows: 23, cols: 38, mineDensity: 0.20 }
-        };
-
-        let currentDiff = 'medium';
-        let board = [];
-        let gameOver = false;
-        let timerInterval;
-        let seconds = 0;
-        let totalMines = 0;
-        let isDebug = false;
 
         const landPolygons = [
             [[54.7003, 24.7927], [55.3, 25.2], [55.9, 25.8], [56.1, 26.2], [56.25, 26.35], [56.45, 26.4], [56.5, 26.3], [56.35, 26.0], [56.4519, 24.7578]],
@@ -265,14 +229,20 @@
             [[56.33, 26.83], [56.33, 26.90], [56.44, 26.90], [56.44, 26.83]]
         ];
 
+        let currentDiff = 'medium';
+        let board = [];
+        let gameOver = false;
+        let timerInterval;
+        let seconds = 0;
+        let isDebug = false;
+
         function isPointOnLand(x, y) {
             for (let poly of landPolygons) {
                 let inside = false;
                 for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
                     let xi = poly[i][0], yi = poly[i][1];
                     let xj = poly[j][0], yj = poly[j][1];
-                    let intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-                    if (intersect) inside = !inside;
+                    if (((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) inside = !inside;
                 }
                 if (inside) return true;
             }
@@ -281,120 +251,127 @@
 
         function setDifficulty(level) {
             currentDiff = level;
-            document.querySelectorAll('.difficulty-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(`btn-${level}`).classList.add('active');
+            document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.toggle('active', b.id === `btn-${level}`));
             initGame();
         }
 
         function initGame() {
-            const gridElement = document.getElementById('game-grid');
-            let config = {...difficulties[currentDiff]};
+            const gridEl = document.getElementById('game-grid');
+            gridEl.innerHTML = '';
             
-            // Tilpass for mobil: Halver kolonner, øk rader med 50%
-            if (window.innerWidth < 640) {
-                config.cols = Math.max(8, Math.floor(config.cols / 2));
-                config.rows = Math.floor(config.rows * 1.5);
-            }
+            const cellDim = window.innerWidth < 640 ? 33 : 29;
+            const availW = window.innerWidth - 10;
+            const availH = window.innerHeight - 100;
+            
+            let cols = Math.floor(availW / cellDim);
+            let rows = Math.floor(availH / cellDim);
 
-            gridElement.innerHTML = '';
-            gridElement.style.gridTemplateColumns = `repeat(${config.cols}, 1fr)`;
-            document.getElementById('status-overlay').style.display = 'none';
+            const diffs = { easy: 0.1, medium: 0.15, expert: 0.22 };
             
+            gridEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+            document.getElementById('status-overlay').style.display = 'none';
             board = [];
             gameOver = false;
             seconds = 0;
             clearInterval(timerInterval);
             document.getElementById('timer').innerText = 0;
 
-            for (let r = 0; r < config.rows; r++) {
+            for (let r = 0; r < rows; r++) {
                 board[r] = [];
-                for (let c = 0; c < config.cols; c++) {
-                    const cellEl = document.createElement('div');
-                    cellEl.className = 'cell';
+                for (let c = 0; c < cols; c++) {
+                    const el = document.createElement('div');
+                    el.className = 'cell';
+                    gridEl.appendChild(el);
                     
-                    const cell = {
-                        r, c, el: cellEl,
-                        isMine: false, revealed: false, flagged: false, onLand: false, neighbors: 0
-                    };
+                    const cell = { r, c, el, isMine: false, revealed: false, flagged: false, onLand: false, neighbors: 0 };
+                    
+                    // Avansert touch-håndtering for "Long Press"
+                    let touchStartTime = 0;
+                    let longPressTimer = null;
 
-                    // Touch-håndtering (Long press for flagg)
-                    let touchTimer;
-                    cellEl.addEventListener('touchstart', (e) => {
+                    el.addEventListener('touchstart', (e) => {
                         if (gameOver) return;
-                        touchTimer = setTimeout(() => {
+                        touchStartTime = Date.now();
+                        
+                        // Start timer for markering (450ms)
+                        longPressTimer = setTimeout(() => {
                             toggleFlag(r, c);
-                            touchTimer = null;
-                        }, 400);
-                    }, {passive: true});
+                            longPressTimer = null; // Markerer at flagg er satt
+                        }, 450);
+                    }, { passive: true });
 
-                    cellEl.addEventListener('touchend', (e) => {
-                        if (touchTimer) {
-                            clearTimeout(touchTimer);
-                            touchTimer = null;
-                            reveal(r, c);
+                    el.addEventListener('touchend', (e) => {
+                        if (longPressTimer) {
+                            clearTimeout(longPressTimer);
+                            longPressTimer = null;
+                            
+                            // Hvis fingeren slippes før timeren gikk ut, er det et vanlig klikk
+                            const duration = Date.now() - touchStartTime;
+                            if (duration < 450) {
+                                reveal(r, c);
+                            }
                         }
                     });
 
-                    // Mus-håndtering
-                    cellEl.onmousedown = (e) => {
+                    el.addEventListener('touchmove', () => {
+                        // Avbryt hvis brukeren begynner å bevege fingeren mye (sveiper)
+                        if (longPressTimer) {
+                            clearTimeout(longPressTimer);
+                            longPressTimer = null;
+                        }
+                    });
+
+                    // Mus-støtte for PC
+                    el.onmousedown = (e) => {
                         if (gameOver) return;
-                        if (e.button === 2) toggleFlag(r, c);
-                        else if (e.button === 0) reveal(r, c);
+                        if (e.button === 2) {
+                            e.preventDefault();
+                            toggleFlag(r, c);
+                        } else if (e.button === 0) {
+                            reveal(r, c);
+                        }
                     };
-
-                    cellEl.oncontextmenu = (e) => e.preventDefault();
-
-                    gridElement.appendChild(cellEl);
+                    
+                    el.oncontextmenu = (e) => e.preventDefault();
                     board[r][c] = cell;
                 }
             }
 
-            // Plasser land og miner
             setTimeout(() => {
-                let waterCells = [];
-                for (let r = 0; r < config.rows; r++) {
-                    for (let c = 0; c < config.cols; c++) {
-                        const cell = board[r][c];
-                        const rect = cell.el.getBoundingClientRect();
-                        const latlng = map.containerPointToLatLng([rect.left + rect.width/2, rect.top + rect.height/2]);
-                        
-                        if (isPointOnLand(latlng.lng, latlng.lat)) {
-                            cell.onLand = true;
-                            cell.el.classList.add('land');
-                        } else {
-                            waterCells.push(cell);
-                        }
+                let water = [];
+                board.flat().forEach(cell => {
+                    const rect = cell.el.getBoundingClientRect();
+                    const latlng = map.containerPointToLatLng([rect.left + rect.width/2, rect.top + rect.height/2]);
+                    if (isPointOnLand(latlng.lng, latlng.lat)) {
+                        cell.onLand = true;
+                        cell.el.classList.add('land');
+                    } else {
+                        water.push(cell);
                     }
-                }
+                });
 
-                totalMines = Math.floor(waterCells.length * config.mineDensity);
+                const totalMines = Math.floor(water.length * diffs[currentDiff]);
                 document.getElementById('mine-count').innerText = totalMines;
 
                 let placed = 0;
                 while (placed < totalMines) {
-                    const cell = waterCells[Math.floor(Math.random() * waterCells.length)];
-                    if (!cell.isMine) {
-                        cell.isMine = true;
-                        placed++;
-                    }
+                    const c = water[Math.floor(Math.random() * water.length)];
+                    if (!c.isMine) { c.isMine = true; placed++; }
                 }
 
-                board.forEach(row => row.forEach(cell => {
-                    if (cell.onLand || cell.isMine) return;
+                board.forEach(row => row.forEach(c => {
+                    if (c.onLand || c.isMine) return;
                     let count = 0;
                     for(let dr=-1; dr<=1; dr++) {
                         for(let dc=-1; dc<=1; dc++) {
-                            if (board[cell.r+dr]?.[cell.c+dc]?.isMine) count++;
+                            if (board[c.r+dr]?.[c.c+dc]?.isMine) count++;
                         }
                     }
-                    cell.neighbors = count;
+                    c.neighbors = count;
                 }));
 
-                timerInterval = setInterval(() => {
-                    seconds++;
-                    document.getElementById('timer').innerText = seconds;
-                }, 1000);
-            }, 100);
+                timerInterval = setInterval(() => { seconds++; document.getElementById('timer').innerText = seconds; }, 1000);
+            }, 60);
         }
 
         function toggleFlag(r, c) {
@@ -404,33 +381,34 @@
             cell.el.innerText = cell.flagged ? '🚩' : '';
             cell.el.classList.toggle('flagged', cell.flagged);
             
-            let flags = 0;
-            board.flat().forEach(c => { if(c.flagged) flags++; });
-            document.getElementById('mine-count').innerText = totalMines - flags;
+            // Oppdater mine-teller basert på flagg (enkel logikk)
+            const currentMines = parseInt(document.getElementById('mine-count').innerText);
+            // document.getElementById('mine-count').innerText = cell.flagged ? currentMines - 1 : currentMines + 1;
         }
 
         function reveal(r, c) {
             const cell = board[r]?.[c];
             if (!cell || cell.revealed || cell.flagged || cell.onLand || gameOver) return;
-
+            
             cell.revealed = true;
             cell.el.classList.add('revealed');
-
-            if (cell.isMine) {
-                endGame(false);
-                return;
+            
+            if (cell.isMine) { 
+                endGame(false); 
+                return; 
             }
-
+            
             if (cell.neighbors > 0) {
                 cell.el.innerText = cell.neighbors;
                 cell.el.classList.add(`num-${cell.neighbors}`);
             } else {
-                for(let dr=-1; dr<=1; dr++) {
-                    for(let dc=-1; dc<=1; dc++) {
-                        reveal(r+dr, c+dc);
-                    }
+                for(let dr=-1; dr<=1; dr++) { 
+                    for(let dc=-1; dc<=1; dc++) { 
+                        if (dr !== 0 || dc !== 0) reveal(r+dr, c+dc); 
+                    } 
                 }
             }
+            
             checkWin();
         }
 
@@ -442,28 +420,23 @@
         function endGame(win) {
             gameOver = true;
             clearInterval(timerInterval);
-            board.flat().forEach(c => {
-                if (c.isMine) {
-                    c.el.classList.add('mine');
-                    c.el.innerText = '💣';
-                }
+            board.flat().forEach(c => { 
+                if(c.isMine) { 
+                    c.el.classList.add('mine'); 
+                    c.el.innerText = '💣'; 
+                } 
             });
-            const overlay = document.getElementById('status-overlay');
-            document.getElementById('status-text').innerText = win ? "SEIER" : "KATASTROFE";
-            document.getElementById('status-sub').innerText = win ? "Hormuzstredet er ryddet!" : "Radarovervåkningen brutt.";
-            overlay.style.display = 'block';
+            document.getElementById('status-text').innerText = win ? "OPPDRAG UTFØRT" : "RADAR DEFEKT";
+            document.getElementById('status-overlay').style.display = 'block';
         }
 
         function toggleDebug() {
             isDebug = !isDebug;
             document.body.classList.toggle('debug-active', isDebug);
+            document.querySelector('.debug-toggle').innerText = `DEBUG ${isDebug ? 'ON' : 'OFF'}`;
         }
 
-        window.addEventListener('resize', () => {
-            clearTimeout(window.rt);
-            window.rt = setTimeout(initGame, 300);
-        });
-
+        window.onresize = initGame;
         window.onload = initGame;
     </script>
 </body>
