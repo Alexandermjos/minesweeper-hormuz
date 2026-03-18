@@ -102,7 +102,6 @@
             aspect-ratio: 1 / 1;
             width: 28px;
             height: 28px;
-            /* Gjort mer gjennomsiktig: 0.85 -> 0.4 */
             background: rgba(10, 30, 50, 0.4); 
             display: flex;
             align-items: center;
@@ -112,7 +111,6 @@
             font-weight: bold;
             user-select: none;
             transition: background 0.1s;
-            /* Litt tydeligere grenser for å skille rutene når de er transparente */
             border: 0.5px solid rgba(0, 255, 255, 0.15);
         }
 
@@ -140,6 +138,17 @@
         .cell.mine { background: rgba(255, 0, 0, 0.8) !important; color: white; }
         .cell.flagged { color: #ffcc00; font-size: 18px; }
 
+        /* Debug styling */
+        .debug-active .cell.is-mine-debug:not(.revealed) {
+            border: 1px solid #a855f7 !important;
+            background: rgba(168, 85, 247, 0.2);
+        }
+        .debug-active .cell.is-mine-debug:not(.revealed)::after {
+            content: '•';
+            color: #a855f7;
+            font-size: 10px;
+        }
+
         .num-1 { color: #60a5fa; text-shadow: 0 0 5px rgba(0,0,0,0.8); }
         .num-2 { color: #34d399; text-shadow: 0 0 5px rgba(0,0,0,0.8); }
         .num-3 { color: #f87171; text-shadow: 0 0 5px rgba(0,0,0,0.8); }
@@ -160,17 +169,25 @@
             box-shadow: 0 0 50px rgba(0,0,0,1);
         }
 
-        .debug-toggle {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            z-index: 50;
-            pointer-events: auto;
-            background: rgba(0, 0, 0, 0.7);
+        .header-action-btn {
             border: 1px solid var(--neon-cyan);
-            color: var(--neon-cyan);
-            padding: 4px;
+            padding: 4px 8px;
+            text-transform: uppercase;
+            font-weight: bold;
             font-size: 9px;
+            color: var(--neon-cyan);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .header-action-btn:hover {
+            background: rgba(0, 255, 255, 0.1);
+        }
+
+        .header-action-btn.active {
+            background: #a855f7;
+            color: white;
+            border-color: #a855f7;
         }
     </style>
 </head>
@@ -181,31 +198,34 @@
     <div class="game-overlay">
         <div class="ui-header">
             <div>
-                <h1 class="text-[10px] font-bold text-cyan-400">OPERASJON HORMUZ</h1>
+                <h1 class="text-[10px] font-bold text-cyan-400">MINESWEEPER HORMUZ</h1>
                 <div class="flex gap-1 mt-1">
                     <button onclick="setDifficulty('easy')" id="btn-easy" class="difficulty-btn">LOW</button>
-                    <button onclick="setDifficulty('medium')" id="btn-medium" class="difficulty-btn active">MID</button>
+                    <button onclick="setDifficulty('medium')" id="btn-medium" class="difficulty-btn active">MED</button>
                     <button onclick="setDifficulty('expert')" id="btn-expert" class="difficulty-btn">MAX</button>
                 </div>
             </div>
-            <div class="flex gap-4">
-                <div class="text-right">
-                    <div class="text-[8px] opacity-60 uppercase">Miner</div>
-                    <div id="mine-count" class="text-xs font-bold text-cyan-400">0</div>
+            <div class="flex items-center gap-4">
+                <div class="flex gap-3 mr-2 border-r border-cyan-900 pr-4">
+                    <div class="text-right">
+                        <div class="text-[8px] opacity-60 uppercase">Miner</div>
+                        <div id="mine-count" class="text-xs font-bold text-cyan-400">0</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-[8px] opacity-60 uppercase">Tid</div>
+                        <div id="timer" class="text-xs font-bold text-cyan-400">0</div>
+                    </div>
                 </div>
-                <div class="text-right">
-                    <div class="text-[8px] opacity-60 uppercase">Tid</div>
-                    <div id="timer" class="text-xs font-bold text-cyan-400">0</div>
+                <div class="flex gap-2">
+                    <button onclick="toggleDebug()" id="debug-btn" class="header-action-btn">Debug Mines</button>
+                    <button onclick="initGame()" class="header-action-btn">Reset</button>
                 </div>
-                <button onclick="initGame()" class="border border-cyan-400 px-2 py-1 text-[9px] uppercase font-bold text-cyan-400">Reset</button>
             </div>
         </div>
 
         <div class="grid-wrapper">
             <div id="game-grid" class="grid-container"></div>
         </div>
-        
-        <button onclick="toggleDebug()" class="debug-toggle">DEBUG OFF</button>
     </div>
 
     <div id="status-overlay">
@@ -352,7 +372,11 @@
                 let placed = 0;
                 while (placed < totalMines) {
                     const c = water[Math.floor(Math.random() * water.length)];
-                    if (!c.isMine) { c.isMine = true; placed++; }
+                    if (!c.isMine) { 
+                        c.isMine = true; 
+                        c.el.classList.add('is-mine-debug');
+                        placed++; 
+                    }
                 }
 
                 board.forEach(row => row.forEach(c => {
@@ -425,7 +449,8 @@
         function toggleDebug() {
             isDebug = !isDebug;
             document.body.classList.toggle('debug-active', isDebug);
-            document.querySelector('.debug-toggle').innerText = `DEBUG ${isDebug ? 'ON' : 'OFF'}`;
+            const btn = document.getElementById('debug-btn');
+            btn.classList.toggle('active', isDebug);
         }
 
         window.onresize = initGame;
