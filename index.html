@@ -2,7 +2,7 @@
 <html lang="no">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Minesweeper Hormuz</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -22,6 +22,7 @@
             font-family: 'Orbitron', sans-serif;
             overflow: hidden;
             height: 100vh;
+            touch-action: manipulation;
         }
 
         #map {
@@ -31,8 +32,7 @@
             width: 100%;
             height: 100%;
             z-index: 1;
-            filter: brightness(0.7) contrast(1.1) saturate(0.9);
-            /* Låser kartet fra å fange opp museklikk/touch */
+            filter: brightness(0.6) contrast(1.1);
             pointer-events: none;
         }
 
@@ -53,7 +53,7 @@
             background: rgba(10, 20, 30, 0.9);
             backdrop-filter: blur(10px);
             border-bottom: 2px solid var(--neon-cyan);
-            padding: 0.75rem 1.5rem;
+            padding: 0.5rem 1rem;
             width: 100%;
             display: flex;
             justify-content: space-between;
@@ -63,8 +63,8 @@
         }
 
         .difficulty-btn {
-            padding: 2px 8px;
-            font-size: 10px;
+            padding: 2px 6px;
+            font-size: 9px;
             border: 1px solid rgba(0, 255, 255, 0.3);
             cursor: pointer;
             transition: all 0.2s;
@@ -81,7 +81,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 10px;
+            overflow: hidden;
         }
 
         .grid-container {
@@ -90,23 +91,35 @@
             gap: 1px;
             background: rgba(0, 255, 255, 0.2); 
             border: 2px solid var(--neon-cyan);
-            width: 90vw;
-            max-width: 950px;
+            width: fit-content;
+            max-width: 95vw;
+            max-height: 75vh;
             box-shadow: 0 0 30px rgba(0, 255, 255, 0.1);
         }
 
         .cell {
             aspect-ratio: 1 / 1; 
-            width: 100%;
-            background: rgba(10, 30, 50, 0.6); 
+            min-width: 25px;
+            min-height: 25px;
+            background: rgba(10, 30, 50, 0.7); 
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            font-size: clamp(8px, 1.2vw, 14px);
+            font-size: clamp(10px, 3vw, 16px);
             font-weight: bold;
             transition: background 0.1s;
             user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        /* Øk størrelsen på mobil spesifikt */
+        @media (max-width: 640px) {
+            .cell {
+                min-width: 35px;
+                min-height: 35px;
+            }
         }
 
         .cell.land {
@@ -114,22 +127,13 @@
             pointer-events: none;
         }
 
-        /* Debug styling for land cells */
         .debug-active .cell.land {
             visibility: visible;
             background: rgba(255, 0, 0, 0.2);
-            border: 1px solid rgba(255, 0, 0, 0.3);
-        }
-
-        /* Make map interactive in debug mode */
-        .debug-active #map {
-            pointer-events: auto !important;
-            z-index: 15;
         }
 
         .cell:hover:not(.revealed) {
             background: rgba(0, 255, 255, 0.4);
-            box-shadow: inset 0 0 5px var(--neon-cyan);
         }
 
         .cell.revealed {
@@ -139,18 +143,17 @@
         .cell.mine {
             background: rgba(255, 0, 0, 0.9) !important;
             color: white;
-            box-shadow: 0 0 10px red;
         }
 
         .cell.flagged {
             color: #ffcc00;
         }
 
-        .num-1 { color: #60a5fa; text-shadow: 1px 1px 2px black; }
-        .num-2 { color: #34d399; text-shadow: 1px 1px 2px black; }
-        .num-3 { color: #f87171; text-shadow: 1px 1px 2px black; }
-        .num-4 { color: #a78bfa; text-shadow: 1px 1px 2px black; }
-        .num-5 { color: #fbbf24; text-shadow: 1px 1px 2px black; }
+        .num-1 { color: #60a5fa; }
+        .num-2 { color: #34d399; }
+        .num-3 { color: #f87171; }
+        .num-4 { color: #a78bfa; }
+        .num-5 { color: #fbbf24; }
 
         #status-overlay {
             position: fixed;
@@ -160,105 +163,68 @@
             z-index: 100;
             text-align: center;
             background: rgba(0, 10, 20, 0.95);
-            padding: 2.5rem;
+            padding: 2rem;
             border: 2px solid var(--neon-cyan);
             display: none;
             pointer-events: auto;
-            box-shadow: 0 0 40px rgba(0, 255, 255, 0.3);
-        }
-
-        .btn-restart {
-            margin-top: 1.5rem;
-            background: var(--neon-cyan);
-            color: #000;
-            padding: 10px 25px;
-            font-weight: bold;
-            cursor: pointer;
-            border: none;
-            text-transform: uppercase;
+            width: 85%;
+            max-width: 400px;
         }
 
         .debug-toggle {
             position: absolute;
-            bottom: 20px;
-            left: 20px;
+            bottom: 15px;
+            left: 15px;
             z-index: 50;
             pointer-events: auto;
             background: rgba(0, 0, 0, 0.7);
             border: 1px solid var(--neon-cyan);
             color: var(--neon-cyan);
-            padding: 5px 10px;
+            padding: 4px 8px;
             font-size: 10px;
-            cursor: pointer;
-        }
-        
-        /* Debug label on map */
-        .debug-label {
-            background: rgba(0,0,0,0.8);
-            border: 1px solid red;
-            color: white;
-            padding: 2px 4px;
-            font-size: 9px;
-            border-radius: 3px;
-            white-space: nowrap;
-        }
-
-        #debug-toast {
-            position: fixed;
-            bottom: 60px;
-            left: 20px;
-            background: var(--neon-cyan);
-            color: black;
-            padding: 5px 12px;
-            font-size: 11px;
-            font-weight: bold;
-            display: none;
-            z-index: 1000;
-            box-shadow: 0 0 10px var(--neon-cyan);
         }
     </style>
 </head>
-<body class="">
+<body>
 
     <div id="map"></div>
-    <div id="debug-toast text-xs">Koordinater kopiert!</div>
 
     <div class="game-overlay">
         <div class="ui-header">
             <div class="flex flex-col">
-                <h1 class="text-lg font-bold text-cyan-400 leading-none">MINESWEEPER HORMUZ</h1>
-                <div class="flex gap-2 mt-2">
+                <h1 class="text-xs md:text-sm font-bold text-cyan-400">OPERASJON HORMUZ</h1>
+                <div class="flex gap-1 mt-1">
                     <button onclick="setDifficulty('easy')" id="btn-easy" class="difficulty-btn">LETT</button>
-                    <button onclick="setDifficulty('medium')" id="btn-medium" class="difficulty-btn active">MEDIUM</button>
-                    <button onclick="setDifficulty('expert')" id="btn-expert" class="difficulty-btn">EKSPERT</button>
+                    <button onclick="setDifficulty('medium')" id="btn-medium" class="difficulty-btn active">MID</button>
+                    <button onclick="setDifficulty('expert')" id="btn-expert" class="difficulty-btn">EKSP</button>
                 </div>
             </div>
             
-            <div class="flex gap-8">
+            <div class="flex gap-4">
                 <div class="text-center">
-                    <div class="text-[9px] opacity-60">MINER</div>
-                    <div id="mine-count" class="text-lg font-bold text-cyan-400">0</div>
+                    <div class="text-[8px] opacity-60">MINER</div>
+                    <div id="mine-count" class="text-sm font-bold text-cyan-400">0</div>
                 </div>
                 <div class="text-center">
-                    <div class="text-[9px] opacity-60">TID</div>
-                    <div id="timer" class="text-lg font-bold text-cyan-400">0</div>
+                    <div class="text-[8px] opacity-60">TID</div>
+                    <div id="timer" class="text-sm font-bold text-cyan-400">0</div>
                 </div>
             </div>
             
-            <button onclick="initGame()" class="border border-cyan-400 px-4 py-1 text-[12px] hover:bg-cyan-400 hover:text-black transition uppercase font-bold">Reset</button>
+            <button onclick="initGame()" class="border border-cyan-400 px-3 py-1 text-[10px] hover:bg-cyan-400 hover:text-black transition uppercase font-bold">Reset</button>
         </div>
 
         <div class="grid-wrapper">
             <div id="game-grid" class="grid-container"></div>
         </div>
         
-        <button onclick="toggleDebug()" class="debug-toggle">DEBUG MODE: OFF</button>
+        <button onclick="toggleDebug()" class="debug-toggle">DEBUG OFF</button>
     </div>
 
     <div id="status-overlay">
-        <h2 id="status-text" class="text-3xl font-bold mb-4 text-cyan-400"></h2>
-        <p id="status-sub" class="mb-6 opacity-80 text-sm"></p>
-        <button onclick="initGame()" class="btn-restart text-sm">Prøv Igjen</button>
+        <h2 id="status-text" class="text-2xl font-bold mb-2 text-cyan-400"></h2>
+        <p id="status-sub" class="mb-6 opacity-80 text-xs"></p>
+        <button onclick="initGame()" class="bg-cyan-400 text-black px-6 py-2 font-bold uppercase text-xs">Prøv Igjen</button>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -267,7 +233,6 @@
             center: [26.25, 55.85], 
             zoom: 8,
             zoomControl: false,
-            // Låser kartet i koden
             dragging: false,
             scrollWheelZoom: false,
             doubleClickZoom: false,
@@ -276,9 +241,7 @@
             tap: false
         });
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            attribution: '© OpenStreetMap & CARTO'
-        }).addTo(map);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
 
         const difficulties = {
             easy: { rows: 11, cols: 18, mineDensity: 0.12 },
@@ -293,102 +256,14 @@
         let seconds = 0;
         let totalMines = 0;
         let isDebug = false;
-        let debugLayer = L.layerGroup().addTo(map);
 
         const landPolygons = [
-            // UAE / Musandam
             [[54.7003, 24.7927], [55.3, 25.2], [55.9, 25.8], [56.1, 26.2], [56.25, 26.35], [56.45, 26.4], [56.5, 26.3], [56.35, 26.0], [56.4519, 24.7578]],
-            // Iran Fastland
             [[53.5, 27.3], [53.6077, 26.7901], [54.4313, 26.7067], [54.7003, 26.5398], [55.2, 26.65], [55.6, 26.85], [55.9, 27.1], [56.1, 27.15], [56.5, 27.15], [56.8, 27.05], [57.3579, 25.8697], [58.2748, 25.6224], [58.3792, 27.703]],
-            // Qeshm Island
             [[55.25, 26.55], [55.25, 26.65], [55.7, 26.8], [56.1, 26.95], [56.25, 26.9], [56.1, 26.75], [55.7, 26.65]],
-            // Hormuz Island
             [[56.42, 27.02], [56.42, 27.10], [56.52, 27.10], [56.52, 27.02]],
-            // Larak Island
             [[56.33, 26.83], [56.33, 26.90], [56.44, 26.90], [56.44, 26.83]]
         ];
-
-        function toggleDebug() {
-            isDebug = !isDebug;
-            document.body.classList.toggle('debug-active', isDebug);
-            document.querySelector('.debug-toggle').innerText = `DEBUG MODE: ${isDebug ? 'ON' : 'OFF'}`;
-            
-            // Allow interactions with the map when debug is on
-            if (isDebug) {
-                map.dragging.enable();
-                map.scrollWheelZoom.enable();
-                map.on('click', onMapClick);
-            } else {
-                map.dragging.disable();
-                map.scrollWheelZoom.disable();
-                map.off('click', onMapClick);
-            }
-            
-            drawDebugPoints();
-        }
-
-        function onMapClick(e) {
-            if (!isDebug) return;
-            
-            const lat = parseFloat(e.latlng.lat.toFixed(4));
-            const lng = parseFloat(e.latlng.lng.toFixed(4));
-            const coordStr = `[${lng}, ${lat}]`;
-            
-            // Copy to clipboard
-            const el = document.createElement('textarea');
-            el.value = coordStr;
-            document.body.appendChild(el);
-            el.select();
-            document.execCommand('copy');
-            document.body.removeChild(el);
-            
-            // Add temporary marker
-            L.circleMarker(e.latlng, {
-                radius: 6,
-                color: 'cyan',
-                fillColor: 'white',
-                fillOpacity: 1
-            }).addTo(debugLayer)
-            .bindTooltip(`Kopiert: ${coordStr}`, {
-                permanent: true,
-                direction: 'right'
-            }).openTooltip();
-
-            // Simple toast notification
-            const toast = document.getElementById('debug-toast');
-            if (toast) {
-                toast.innerText = `Kopiert: ${coordStr}`;
-                toast.style.display = 'block';
-                setTimeout(() => { toast.style.display = 'none'; }, 2000);
-            }
-        }
-
-        function drawDebugPoints() {
-            debugLayer.clearLayers();
-            if (!isDebug) return;
-
-            landPolygons.forEach((poly, polyIdx) => {
-                const latLngs = poly.map(p => [p[1], p[0]]);
-                L.polygon(latLngs, {color: 'red', weight: 1, fill: false, dashArray: '5, 5'}).addTo(debugLayer);
-
-                poly.forEach((point, pointIdx) => {
-                    const lng = point[0];
-                    const lat = point[1];
-                    
-                    L.circleMarker([lat, lng], {
-                        radius: 4,
-                        color: 'red',
-                        fillColor: '#f03',
-                        fillOpacity: 0.8
-                    }).addTo(debugLayer)
-                    .bindTooltip(`${lng}, ${lat}`, {
-                        permanent: true, 
-                        direction: 'top',
-                        className: 'debug-label'
-                    });
-                });
-            });
-        }
 
         function isPointOnLand(x, y) {
             for (let poly of landPolygons) {
@@ -413,57 +288,81 @@
 
         function initGame() {
             const gridElement = document.getElementById('game-grid');
-            const statusOverlay = document.getElementById('status-overlay');
-            const config = difficulties[currentDiff];
+            let config = {...difficulties[currentDiff]};
             
+            // Tilpass for mobil: Halver kolonner, øk rader med 50%
+            if (window.innerWidth < 640) {
+                config.cols = Math.max(8, Math.floor(config.cols / 2));
+                config.rows = Math.floor(config.rows * 1.5);
+            }
+
             gridElement.innerHTML = '';
             gridElement.style.gridTemplateColumns = `repeat(${config.cols}, 1fr)`;
-            statusOverlay.style.display = 'none';
+            document.getElementById('status-overlay').style.display = 'none';
             
             board = [];
             gameOver = false;
             seconds = 0;
             clearInterval(timerInterval);
             document.getElementById('timer').innerText = 0;
-            document.getElementById('mine-count').innerText = "...";
 
             for (let r = 0; r < config.rows; r++) {
                 board[r] = [];
                 for (let c = 0; c < config.cols; c++) {
+                    const cellEl = document.createElement('div');
+                    cellEl.className = 'cell';
+                    
                     const cell = {
-                        r, c,
-                        isMine: false,
-                        revealed: false,
-                        flagged: false,
-                        onLand: false,
-                        neighborMines: 0,
-                        el: document.createElement('div')
+                        r, c, el: cellEl,
+                        isMine: false, revealed: false, flagged: false, onLand: false, neighbors: 0
                     };
-                    cell.el.className = 'cell';
-                    gridElement.appendChild(cell.el);
+
+                    // Touch-håndtering (Long press for flagg)
+                    let touchTimer;
+                    cellEl.addEventListener('touchstart', (e) => {
+                        if (gameOver) return;
+                        touchTimer = setTimeout(() => {
+                            toggleFlag(r, c);
+                            touchTimer = null;
+                        }, 400);
+                    }, {passive: true});
+
+                    cellEl.addEventListener('touchend', (e) => {
+                        if (touchTimer) {
+                            clearTimeout(touchTimer);
+                            touchTimer = null;
+                            reveal(r, c);
+                        }
+                    });
+
+                    // Mus-håndtering
+                    cellEl.onmousedown = (e) => {
+                        if (gameOver) return;
+                        if (e.button === 2) toggleFlag(r, c);
+                        else if (e.button === 0) reveal(r, c);
+                    };
+
+                    cellEl.oncontextmenu = (e) => e.preventDefault();
+
+                    gridElement.appendChild(cellEl);
                     board[r][c] = cell;
                 }
             }
 
+            // Plasser land og miner
             setTimeout(() => {
                 let waterCells = [];
-
                 for (let r = 0; r < config.rows; r++) {
                     for (let c = 0; c < config.cols; c++) {
                         const cell = board[r][c];
                         const rect = cell.el.getBoundingClientRect();
-                        const centerX = rect.left + rect.width / 2;
-                        const centerY = rect.top + rect.height / 2;
-                        
-                        const latlng = map.containerPointToLatLng([centerX, centerY]);
+                        const latlng = map.containerPointToLatLng([rect.left + rect.width/2, rect.top + rect.height/2]);
                         
                         if (isPointOnLand(latlng.lng, latlng.lat)) {
                             cell.onLand = true;
                             cell.el.classList.add('land');
                         } else {
                             waterCells.push(cell);
-                            cell.el.onmousedown = (e) => handleCellClick(e, r, c);
-                            cell.el.oncontextmenu = (e) => e.preventDefault();
                         }
                     }
                 }
@@ -473,62 +372,46 @@
 
                 let placed = 0;
                 while (placed < totalMines) {
-                    const idx = Math.floor(Math.random() * waterCells.length);
-                    if (!waterCells[idx].isMine) {
-                        waterCells[idx].isMine = true;
+                    const cell = waterCells[Math.floor(Math.random() * waterCells.length)];
+                    if (!cell.isMine) {
+                        cell.isMine = true;
                         placed++;
                     }
                 }
 
-                for (let cell of waterCells) {
-                    if (cell.isMine) continue;
+                board.forEach(row => row.forEach(cell => {
+                    if (cell.onLand || cell.isMine) return;
                     let count = 0;
-                    for (let dr = -1; dr <= 1; dr++) {
-                        for (let dc = -1; dc <= 1; dc++) {
-                            let nr = cell.r + dr, nc = cell.c + dc;
-                            if (nr >= 0 && nr < config.rows && nc >= 0 && nc < config.cols) {
-                                if (board[nr][nc].isMine) count++;
-                            }
+                    for(let dr=-1; dr<=1; dr++) {
+                        for(let dc=-1; dc<=1; dc++) {
+                            if (board[cell.r+dr]?.[cell.c+dc]?.isMine) count++;
                         }
                     }
-                    cell.neighborMines = count;
-                }
+                    cell.neighbors = count;
+                }));
 
                 timerInterval = setInterval(() => {
                     seconds++;
                     document.getElementById('timer').innerText = seconds;
                 }, 1000);
-
-                if(isDebug) drawDebugPoints();
-
-            }, 50);
-        }
-
-        function handleCellClick(e, r, c) {
-            if (gameOver) return;
-            if (e.button === 2) {
-                toggleFlag(r, c);
-            } else {
-                reveal(r, c);
-            }
+            }, 100);
         }
 
         function toggleFlag(r, c) {
             const cell = board[r][c];
-            if (cell.revealed) return;
+            if (cell.revealed || gameOver) return;
             cell.flagged = !cell.flagged;
             cell.el.innerText = cell.flagged ? '🚩' : '';
             cell.el.classList.toggle('flagged', cell.flagged);
             
             let flags = 0;
-            board.forEach(row => row.forEach(c => { if(c.flagged) flags++; }));
+            board.flat().forEach(c => { if(c.flagged) flags++; });
             document.getElementById('mine-count').innerText = totalMines - flags;
         }
 
         function reveal(r, c) {
-            const config = difficulties[currentDiff];
-            const cell = board[r][c];
-            if (cell.revealed || cell.flagged || cell.onLand || gameOver) return;
+            const cell = board[r]?.[c];
+            if (!cell || cell.revealed || cell.flagged || cell.onLand || gameOver) return;
 
             cell.revealed = true;
             cell.el.classList.add('revealed');
@@ -538,16 +421,13 @@
                 return;
             }
 
-            if (cell.neighborMines > 0) {
-                cell.el.innerText = cell.neighborMines;
-                cell.el.classList.add(`num-${cell.neighborMines}`);
+            if (cell.neighbors > 0) {
+                cell.el.innerText = cell.neighbors;
+                cell.el.classList.add(`num-${cell.neighbors}`);
             } else {
-                for (let dr = -1; dr <= 1; dr++) {
-                    for (let dc = -1; dc <= 1; dc++) {
-                        let nr = r + dr, nc = c + dc;
-                        if (nr >= 0 && nr < config.rows && nc >= 0 && nc < config.cols) {
-                            reveal(nr, nc);
-                        }
+                for(let dr=-1; dr<=1; dr++) {
+                    for(let dc=-1; dc<=1; dc++) {
+                        reveal(r+dr, c+dc);
                     }
                 }
             }
@@ -555,45 +435,33 @@
         }
 
         function checkWin() {
-            const config = difficulties[currentDiff];
-            let win = true;
-            for (let r = 0; r < config.rows; r++) {
-                for (let c = 0; c < config.cols; c++) {
-                    if (!board[r][c].onLand && !board[r][c].isMine && !board[r][c].revealed) {
-                        win = false;
-                    }
-                }
-            }
-            if (win) endGame(true);
+            const won = board.flat().every(c => c.onLand || c.isMine || c.revealed);
+            if (won) endGame(true);
         }
 
-        function endGame(isWin) {
+        function endGame(win) {
             gameOver = true;
             clearInterval(timerInterval);
-            const overlay = document.getElementById('status-overlay');
-            const text = document.getElementById('status-text');
-            const sub = document.getElementById('status-sub');
-            
-            board.forEach(row => row.forEach(cell => {
-                if (cell.isMine) {
-                    cell.el.classList.add('mine');
-                    cell.el.innerText = '💣';
+            board.flat().forEach(c => {
+                if (c.isMine) {
+                    c.el.classList.add('mine');
+                    c.el.innerText = '💣';
                 }
-            }));
-
+            });
+            const overlay = document.getElementById('status-overlay');
+            document.getElementById('status-text').innerText = win ? "SEIER" : "KATASTROFE";
+            document.getElementById('status-sub').innerText = win ? "Hormuzstredet er ryddet!" : "Radarovervåkningen brutt.";
             overlay.style.display = 'block';
-            if (isWin) {
-                text.innerText = "SEIER";
-                sub.innerText = "Hormuzstredet er nå trygt for sivil skipsfart.";
-            } else {
-                text.innerText = "KATASTROFE";
-                sub.innerText = "Radarovervåkningen ble brutt ved detonasjon.";
-            }
+        }
+
+        function toggleDebug() {
+            isDebug = !isDebug;
+            document.body.classList.toggle('debug-active', isDebug);
         }
 
         window.addEventListener('resize', () => {
-            clearTimeout(window.resizeTimer);
-            window.resizeTimer = setTimeout(initGame, 300);
+            clearTimeout(window.rt);
+            window.rt = setTimeout(initGame, 300);
         });
 
         window.onload = initGame;
