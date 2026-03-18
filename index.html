@@ -119,6 +119,12 @@
             border: 1px solid rgba(255, 0, 0, 0.3);
         }
 
+        /* Make map interactive in debug mode */
+        .debug-active #map {
+            pointer-events: auto !important;
+            z-index: 15;
+        }
+
         .cell:hover:not(.revealed) {
             background: rgba(0, 255, 255, 0.4);
             box-shadow: inset 0 0 5px var(--neon-cyan);
@@ -194,11 +200,26 @@
             border-radius: 3px;
             white-space: nowrap;
         }
+
+        #debug-toast {
+            position: fixed;
+            bottom: 60px;
+            left: 20px;
+            background: var(--neon-cyan);
+            color: black;
+            padding: 5px 12px;
+            font-size: 11px;
+            font-weight: bold;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 0 10px var(--neon-cyan);
+        }
     </style>
 </head>
 <body class="">
 
     <div id="map"></div>
+    <div id="debug-toast text-xs">Koordinater kopiert!</div>
 
     <div class="game-overlay">
         <div class="ui-header">
@@ -270,9 +291,9 @@
 
         const landPolygons = [
             // UAE / Musandam
-            [[55.0, 25.0], [55.3, 25.2], [55.9, 25.8], [56.1, 26.2], [56.25, 26.35], [56.45, 26.4], [56.5, 26.3], [56.35, 26.0], [56.35, 25.0]],
+            [[54.7003, 24.7927], [55.3, 25.2], [55.9, 25.8], [56.1, 26.2], [56.25, 26.35], [56.45, 26.4], [56.5, 26.3], [56.35, 26.0], [56.4519, 24.7578]],
             // Iran Fastland
-            [[53.5, 27.3], [53.5, 26.5], [55.2, 26.65], [55.6, 26.85], [55.9, 27.1], [56.1, 27.15], [56.5, 27.15], [56.8, 27.05], [57.5, 27.05], [57.5, 27.5]],
+            [[53.5, 27.3], [53.6077, 26.7901], [54.4313, 26.7067], [54.7003, 26.5398], [55.2, 26.65], [55.6, 26.85], [55.9, 27.1], [56.1, 27.15], [56.5, 27.15], [56.8, 27.05], [57.3579, 25.8697], [58.2748, 25.6224], [58.3792, 27.703]],
             // Qeshm Island
             [[55.25, 26.55], [55.25, 26.65], [55.7, 26.8], [56.1, 26.95], [56.25, 26.9], [56.1, 26.75], [55.7, 26.65]],
             // Hormuz Island
@@ -285,7 +306,55 @@
             isDebug = !isDebug;
             document.body.classList.toggle('debug-active', isDebug);
             document.querySelector('.debug-toggle').innerText = `DEBUG MODE: ${isDebug ? 'ON' : 'OFF'}`;
+            
+            // Allow interactions with the map when debug is on
+            if (isDebug) {
+                map.dragging.enable();
+                map.scrollWheelZoom.enable();
+                map.on('click', onMapClick);
+            } else {
+                map.dragging.disable();
+                map.scrollWheelZoom.disable();
+                map.off('click', onMapClick);
+            }
+            
             drawDebugPoints();
+        }
+
+        function onMapClick(e) {
+            if (!isDebug) return;
+            
+            const lat = parseFloat(e.latlng.lat.toFixed(4));
+            const lng = parseFloat(e.latlng.lng.toFixed(4));
+            const coordStr = `[${lng}, ${lat}]`;
+            
+            // Copy to clipboard
+            const el = document.createElement('textarea');
+            el.value = coordStr;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            
+            // Add temporary marker
+            L.circleMarker(e.latlng, {
+                radius: 6,
+                color: 'cyan',
+                fillColor: 'white',
+                fillOpacity: 1
+            }).addTo(debugLayer)
+            .bindTooltip(`Kopiert: ${coordStr}`, {
+                permanent: true,
+                direction: 'right'
+            }).openTooltip();
+
+            // Simple toast notification
+            const toast = document.getElementById('debug-toast');
+            if (toast) {
+                toast.innerText = `Kopiert: ${coordStr}`;
+                toast.style.display = 'block';
+                setTimeout(() => { toast.style.display = 'none'; }, 2000);
+            }
         }
 
         function drawDebugPoints() {
@@ -293,11 +362,9 @@
             if (!isDebug) return;
 
             landPolygons.forEach((poly, polyIdx) => {
-                // Tegn linjer mellom punktene
                 const latLngs = poly.map(p => [p[1], p[0]]);
                 L.polygon(latLngs, {color: 'red', weight: 1, fill: false, dashArray: '5, 5'}).addTo(debugLayer);
 
-                // Tegn hvert punkt
                 poly.forEach((point, pointIdx) => {
                     const lng = point[0];
                     const lat = point[1];
